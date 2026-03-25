@@ -1,0 +1,24 @@
+# =========================
+# MATLAB Generated Files
+# =========================
+
+# Autosave files
+*.asv
+
+# MATLAB workspace
+*.mat
+
+# Simulink cache and codegen
+slprj/
+codegen/
+
+# Simulink autosave
+*.slxc
+*.autosave
+
+# Simulink backup files
+*.slx.r*
+*.mdl.r*
+
+# Simulink temporary files
+*.slxp
