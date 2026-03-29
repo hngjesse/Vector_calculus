@@ -9,15 +9,17 @@ p.addParameter('ArrowHeadFrac', 0.4, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('ArrowHeadAngle', pi/6, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('Colorbar', true, @(x) islogical(x) || isnumeric(x));
 p.addParameter('Parent', gca);
+p.addParameter('Mode', 'color', @(x) ismember(x,{'color','length'}));
 p.parse(varargin{:});
 
 userScale = p.Results.Scale;
-lw   = p.Results.LineWidth;
-cmap = p.Results.Colormap;
-ahf  = p.Results.ArrowHeadFrac;
-aha  = p.Results.ArrowHeadAngle;
-showCB = logical(p.Results.Colorbar);
-ax   = p.Results.Parent;
+lw        = p.Results.LineWidth;
+cmap      = p.Results.Colormap;
+ahf       = p.Results.ArrowHeadFrac;
+aha       = p.Results.ArrowHeadAngle;
+showCB    = logical(p.Results.Colorbar);
+ax        = p.Results.Parent;
+mode      = p.Results.Mode;
 
 hold(ax, 'on')
 
@@ -25,8 +27,6 @@ hold(ax, 'on')
 dx = min(diff(unique(X(:))));
 dy = min(diff(unique(Y(:))));
 baseScale = min(dx, dy);
-
-scale = userScale * baseScale;
 
 % -------- Vector magnitude --------
 mag = hypot(U, V);
@@ -40,17 +40,31 @@ mag_safe(zeroMask) = 1;   % prevent division by zero
 Uu = U ./ mag_safe;
 Vu = V ./ mag_safe;
 
-U = Uu * scale;
-V = Vu * scale;
+switch mode
+    case 'color'
+        % In color mode, lengths are fixed, color shows magnitude
+        scale = userScale * baseScale;
+        U = Uu * scale;
+        V = Vu * scale;
+        colorVal = mag;   % magnitude maps to color
+
+    case 'length'
+        % In length mode, lengths scale with magnitude, color is uniform
+        maxMag = max(mag(:));
+        if maxMag==0, maxMag=1; end
+        scale = userScale * baseScale / maxMag;  % longest arrow = baseScale
+        U = U .* scale;
+        V = V .* scale;
+        colorVal = ones(size(mag));  % uniform color
+end
 
 % -------- Color mapping --------
+colormap(ax, cmap)
 mag_min = min(mag(:));
 mag_max = max(mag(:));
-
-colormap(ax, cmap)
 clim(ax, [mag_min mag_max])
 
-idx = round((mag - mag_min) / (mag_max - mag_min) * (size(cmap,1)-1)) + 1;
+idx = round((colorVal - mag_min) / (mag_max - mag_min) * (size(cmap,1)-1)) + 1;
 idx = max(1, min(idx, size(cmap,1)));
 
 % -------- Plot arrows --------
@@ -76,16 +90,14 @@ for i = 1:n
     ah = ahf * L;
 
     theta = atan2(V(i), U(i));
-    ahx = [x1 - ah*cos(theta - aha), x1, ...
-           x1 - ah*cos(theta + aha)];
-    ahy = [y1 - ah*sin(theta - aha), y1, ...
-           y1 - ah*sin(theta + aha)];
+    ahx = [x1 - ah*cos(theta - aha), x1, x1 - ah*cos(theta + aha)];
+    ahy = [y1 - ah*sin(theta - aha), y1, y1 - ah*sin(theta + aha)];
 
     hp(i) = patch(ax, ahx, ahy, c, 'EdgeColor','none');
 end
 
 % -------- Colorbar --------
-if showCB
+if showCB && strcmp(mode,'color')
     h.colorbar = colorbar(ax);
 else
     h.colorbar = [];
@@ -93,7 +105,6 @@ end
 
 xlabel(ax,'$x$','Interpreter','latex')
 ylabel(ax,'$y$','Interpreter','latex')
-
 axis(ax,'equal')   % ensure correct arrow geometry
 
 % -------- Output handles --------
