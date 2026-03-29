@@ -4,9 +4,10 @@ function h = vplotl(X, Y, U, V, varargin)
 p = inputParser;
 p.addParameter('Scale', 1, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('LineWidth', 1.2, @(x) isnumeric(x));
-p.addParameter('Color', 'k');   % single color
+p.addParameter('Color', 'k');
 p.addParameter('ArrowHeadFrac', 0.4, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('ArrowHeadAngle', pi/6, @(x) isnumeric(x) && isscalar(x));
+p.addParameter('Skip', 1, @(x) isnumeric(x) && isscalar(x) && x>=1); % NEW
 p.addParameter('Parent', gca);
 p.parse(varargin{:});
 
@@ -15,9 +16,18 @@ lw   = p.Results.LineWidth;
 col  = p.Results.Color;
 ahf  = p.Results.ArrowHeadFrac;
 aha  = p.Results.ArrowHeadAngle;
+skip = round(p.Results.Skip);
 ax   = p.Results.Parent;
 
 hold(ax, 'on')
+
+% -------- Subsample grid --------
+if skip > 1
+    X = X(1:skip:end, 1:skip:end);
+    Y = Y(1:skip:end, 1:skip:end);
+    U = U(1:skip:end, 1:skip:end);
+    V = V(1:skip:end, 1:skip:end);
+end
 
 % -------- Infer grid spacing --------
 dx = min(diff(unique(X(:))));
@@ -28,13 +38,9 @@ baseScale = min(dx, dy);
 mag = hypot(U, V);
 mag_max = max(mag(:));
 
-% -------- Avoid division by zero --------
 zeroMask = mag == 0;
-mag_safe = mag;
-mag_safe(zeroMask) = 1;
 
 % -------- SCALE BY MAGNITUDE --------
-% Max arrow length = baseScale * userScale
 scale = userScale * baseScale / max(mag_max, eps);
 
 U = U * scale;

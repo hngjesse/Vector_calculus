@@ -11,7 +11,7 @@ W = Z;
 
 
 figure
-vplot3(X,Y,Z,U,V,W,'Scale',0.5,'Colormap',parula(256))
+vplot3(X,Y,Z,U,V,W,'Scale',0.5,'Colormap',parula(256),'Skip', 1)
 fontsize(27,"points")
 xlabel('$x$','Interpreter','latex')
 ylabel('$y$','Interpreter','latex')

@@ -7,6 +7,7 @@ p.addParameter('LineWidth', 1.2, @(x) isnumeric(x));
 p.addParameter('Color', 'k');   % single color
 p.addParameter('ArrowHeadFrac', 0.25, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('ArrowHeadAngle', 20, @(x) isnumeric(x) && isscalar(x)); % degrees
+p.addParameter('Skip', 1, @(x) isnumeric(x) && isscalar(x) && x>=1);
 p.addParameter('Parent', gca);
 p.parse(varargin{:});
 
@@ -15,11 +16,29 @@ lw   = p.Results.LineWidth;
 col  = p.Results.Color;
 ahf  = p.Results.ArrowHeadFrac;
 aha  = deg2rad(p.Results.ArrowHeadAngle);
+skip = round(p.Results.Skip);
 ax   = p.Results.Parent;
 
 hold(ax, 'on')
 view(ax, 3)
 grid(ax, 'on')
+
+% ================= Subsample (same style as vplotl) =================
+if ismatrix(X) && ismatrix(Y) && ismatrix(Z)
+    X = X(1:skip:end, 1:skip:end);
+    Y = Y(1:skip:end, 1:skip:end);
+    Z = Z(1:skip:end, 1:skip:end);
+    U = U(1:skip:end, 1:skip:end);
+    V = V(1:skip:end, 1:skip:end);
+    W = W(1:skip:end, 1:skip:end);
+else
+    X = X(1:skip:end);
+    Y = Y(1:skip:end);
+    Z = Z(1:skip:end);
+    U = U(1:skip:end);
+    V = V(1:skip:end);
+    W = W(1:skip:end);
+end
 
 % ================= Autoscale base =================
 dx = min(diff(unique(X(:))));
@@ -34,7 +53,6 @@ mag_max = max(mag(:));
 zeroMask = mag == 0;
 
 % ================= SCALE BY MAGNITUDE =================
-% Max arrow length = baseScale * userScale
 scale = userScale * baseScale / max(mag_max, eps);
 
 U = U * scale;

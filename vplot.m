@@ -8,6 +8,7 @@ p.addParameter('Colormap', cool(256));
 p.addParameter('ArrowHeadFrac', 0.4, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('ArrowHeadAngle', pi/6, @(x) isnumeric(x) && isscalar(x));
 p.addParameter('Colorbar', true, @(x) islogical(x) || isnumeric(x));
+p.addParameter('Skip', 1, @(x) isnumeric(x) && isscalar(x) && x>=1);
 p.addParameter('Parent', gca);
 p.parse(varargin{:});
 
@@ -17,16 +18,28 @@ cmap = p.Results.Colormap;
 ahf  = p.Results.ArrowHeadFrac;
 aha  = p.Results.ArrowHeadAngle;
 showCB = logical(p.Results.Colorbar);
+skip = round(p.Results.Skip);
 ax   = p.Results.Parent;
 
 hold(ax, 'on')
+
+% -------- Subsample (skip) --------
+if ismatrix(X) && ismatrix(Y)
+    X = X(1:skip:end, 1:skip:end);
+    Y = Y(1:skip:end, 1:skip:end);
+    U = U(1:skip:end, 1:skip:end);
+    V = V(1:skip:end, 1:skip:end);
+else
+    X = X(1:skip:end);
+    Y = Y(1:skip:end);
+    U = U(1:skip:end);
+    V = V(1:skip:end);
+end
 
 % -------- Infer grid spacing (autoscale base) --------
 dx = min(diff(unique(X(:))));
 dy = min(diff(unique(Y(:))));
 baseScale = min(dx, dy);
-
-scale = userScale * baseScale;
 
 % -------- Vector magnitude --------
 mag = hypot(U, V);
@@ -36,12 +49,12 @@ zeroMask = mag == 0;
 mag_safe = mag;
 mag_safe(zeroMask) = 1;   % prevent division by zero
 
-% -------- Normalize vectors --------
+% -------- Normalize & scale vectors --------
 Uu = U ./ mag_safe;
 Vu = V ./ mag_safe;
 
-U = Uu * scale;
-V = Vu * scale;
+U = Uu * baseScale * userScale;
+V = Vu * baseScale * userScale;
 
 % -------- Color mapping --------
 mag_min = min(mag(:));
@@ -71,7 +84,7 @@ for i = 1:n
     hl(i) = line(ax, [x0 x1], [y0 y1], ...
         'Color', c, 'LineWidth', lw);
 
-    % Arrowhead (scaled with arrow length)
+    % Arrowhead
     L = hypot(U(i), V(i));
     ah = ahf * L;
 
@@ -93,7 +106,6 @@ end
 
 xlabel(ax,'$x$','Interpreter','latex')
 ylabel(ax,'$y$','Interpreter','latex')
-
 axis(ax,'equal')   % ensure correct arrow geometry
 
 % -------- Output handles --------
